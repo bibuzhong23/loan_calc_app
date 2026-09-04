@@ -1,22 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>房贷计算器</title>
-
-  <!-- Open Graph 标签，用于社交平台预览 -->
-  <meta property="og:title" content="房贷计算器">
-  <meta property="og:description" content="快速计算房贷月供、利息，一键试算，简单好用！">
-  <meta property="og:image" content="https://bibuzhong23.github.io/loan_calc_app/preview.png">
-  <meta property="og:url" content="https://bibuzhong23.github.io/loan_calc_app/">
-  <meta property="og:type" content="website">
-
-  <!-- Twitter 卡片（微信/WhatsApp 有时也会参考） -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="房贷计算器">
-  <meta name="twitter:description" content="快速计算房贷月供、利息，一键试算，简单好用！">
-  <meta name="twitter:image" content="https://bibuzhong23.github.io/loan_calc_app/preview.png">
-</head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>房贷计算器 · 等额本息</title>
@@ -113,7 +97,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 .cbtn{width:100%;height:52px;background:var(--accent);color:var(--accent-text);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:500;font-family:var(--font);letter-spacing:.07em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;transition:all .15s}
 .cbtn:hover{opacity:.85}
 .cbtn:active{transform:scale(.99)}
-.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.rgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
 @media(max-width:480px){.rgrid{grid-template-columns:1fr}}
 .metric{background:var(--bg3);border-radius:var(--radius-sm);padding:14px 16px}
 .metric .ml{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
@@ -189,7 +173,7 @@ footer{margin-top:40px;padding-top:20px;border-top:0.5px solid var(--border);fon
       <div class="field">
         <label>贷款本金</label>
         <input type="number" id="principal" value="1000000" min="10000" step="10000"/>
-        <div class="unit">单位：澳元AUD</div>
+        <div class="unit">单位：$ 美元</div>
       </div>
       <div class="field">
         <label>年利率 (%)</label>
@@ -224,9 +208,10 @@ footer{margin-top:40px;padding-top:20px;border-top:0.5px solid var(--border);fon
     <div class="panel">
       <div class="plbl">计算结果</div>
       <div class="rgrid">
-        <div class="metric acc"><div class="ml">月供</div><div class="mv" id="r-m">—</div><div class="ms">元 / 月</div></div>
-        <div class="metric"><div class="ml">还款总额</div><div class="mv" id="r-t">—</div><div class="ms">元</div></div>
-        <div class="metric"><div class="ml">利息总额</div><div class="mv" id="r-i">—</div><div class="ms">元</div></div>
+        <div class="metric acc"><div class="ml">月供</div><div class="mv" id="r-m">—</div><div class="ms">$ / 月</div></div>
+        <div class="metric acc"><div class="ml">周供</div><div class="mv" id="r-w">—</div><div class="ms">$ / 周</div></div>
+        <div class="metric"><div class="ml">还款总额</div><div class="mv" id="r-t">—</div><div class="ms">$</div></div>
+        <div class="metric"><div class="ml">利息总额</div><div class="mv" id="r-i">—</div><div class="ms">$</div></div>
       </div>
     </div>
     <div class="panel">
@@ -301,11 +286,16 @@ let term=25,history=[],lastRows=null;
 let trendChart=null,barChart=null,bar2Chart=null,bar3Chart=null;
 let selComp=new Set();
 
-function fmt(n){return Math.round(n).toLocaleString('zh-CN')}
+function fmt(n){return Math.round(n).toLocaleString('en-US')}
 function fmtW(n){
-  if(n>=100000000)return (n/100000000).toFixed(2)+'亿';
-  if(n>=10000)return (n/10000).toFixed(1)+'万';
-  return fmt(n);
+  if(n>=1000000000)return '$'+(n/1000000000).toFixed(2)+'B';
+  if(n>=1000000)return '$'+(n/1000000).toFixed(2)+'M';
+  if(n>=1000)return '$'+(n/1000).toFixed(1)+'K';
+  return '$'+fmt(n);
+}
+/* 等额本息：月供 → 周供换算（按 52 周/年 精确折算，而非简单 ÷4.33） */
+function monthlyToWeekly(monthly){
+  return monthly*12/52;
 }
 function calcM(p,r,y){
   let mr=r/100/12,n=y*12;
@@ -343,8 +333,9 @@ function calc(){
   let r=+document.getElementById('rate').value;
   if(!p||!r||p<=0||r<=0)return;
 
-  let m=calcM(p,r,term),tot=m*term*12,intr=tot-p;
-  document.getElementById('r-m').textContent=fmt(m);
+  let m=calcM(p,r,term),tot=m*term*12,intr=tot-p,w=monthlyToWeekly(m);
+  document.getElementById('r-m').textContent='$'+fmt(m);
+  document.getElementById('r-w').textContent='$'+fmt(w);
   document.getElementById('r-t').textContent=fmtW(tot);
   document.getElementById('r-i').textContent=fmtW(intr);
   document.getElementById('res').style.display='block';
@@ -354,7 +345,7 @@ function calc(){
     let mm=calcM(p,r,y),tt=mm*y*12,ii=tt-p;
     let d=document.createElement('div');
     d.className='metric'+(y===term?' acc':'');
-    d.innerHTML=`<div class="ml">${y}年</div><div class="mv">${fmt(mm)}</div><div class="ms">月供/元</div><div style="font-size:10px;margin-top:4px;color:${y===term?'var(--accent-text)':'var(--text3)'}">利息 ${fmtW(ii)}</div>`;
+    d.innerHTML=`<div class="ml">${y}年</div><div class="mv">$${fmt(mm)}</div><div class="ms">月供 · 周供 $${fmt(monthlyToWeekly(mm))}</div><div style="font-size:10px;margin-top:4px;color:${y===term?'var(--accent-text)':'var(--text3)'}">利息 ${fmtW(ii)}</div>`;
     d.style.cursor='pointer';
     d.addEventListener('click',()=>{setTerm(y);calc();});
     cg.appendChild(d);
@@ -394,7 +385,7 @@ function renderTrend(rows){
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmt(ctx.raw)}元`}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: $${fmt(ctx.raw)}`}}},
       scales:{
         x:{stacked:true,ticks:{maxTicksLimit:10,font:{size:10},color:isDark?'#888780':'#888780'},grid:{display:false}},
         y:{stacked:true,ticks:{font:{size:10},color:isDark?'#888780':'#888780',callback:v=>fmtW(v)},grid:{color:gridColor}},
@@ -413,7 +404,7 @@ function renderAmort(rows){
   rows.forEach(r=>{
     let yr=Math.ceil(r.i/12);
     if(yr!==py){html+=`<div class="yr-div">第 ${yr} 年</div>`;py=yr;}
-    html+=`<div class="arow"><span>${r.i}</span><span>${fmt(r.m)}</span><span>${fmt(r.pp)}</span><span>${fmt(r.ip)}</span><span>${fmt(r.bal)}</span></div>`;
+    html+=`<div class="arow"><span>${r.i}</span><span>$${fmt(r.m)}</span><span>$${fmt(r.pp)}</span><span>$${fmt(r.ip)}</span><span>$${fmt(r.bal)}</span></div>`;
   });
   html+='</div></div>';
   wrap.innerHTML=html;
@@ -430,7 +421,7 @@ function renderHistory(){
         <div class="h1">${h.label}</div>
         <div class="h2">利息 ${fmtW(h.intr)} · ${h.term*12}期</div>
       </div>
-      <div class="hmv">${fmt(h.m)}<span style="font-size:10px;font-weight:400;margin-left:2px">元</span></div>
+      <div class="hmv">$${fmt(h.m)}<span style="font-size:10px;font-weight:400;margin-left:2px">/月</span></div>
       <div class="htm">${h.time}</div>
     </div>`).join('');
 }
@@ -495,7 +486,7 @@ function renderCompCharts(){
   barChart=new Chart(document.getElementById('bc1'),{
     type:'bar',
     data:{labels:lbls,datasets:[{label:'月供',data:items.map(h=>Math.round(h.m)),backgroundColor:PAL}]},
-    options:{...baseOpts({plugins:{tooltip:{callbacks:{label:c=>`月供: ${fmt(c.raw)}元`}}}})}
+    options:{...baseOpts({plugins:{tooltip:{callbacks:{label:c=>`月供: $${fmt(c.raw)}`}}}})}
   });
 
   if(bar2Chart)bar2Chart.destroy();
@@ -505,22 +496,22 @@ function renderCompCharts(){
       {label:'贷款本金',data:items.map(h=>Math.round(h.p)),backgroundColor:PAL},
       {label:'利息总额',data:items.map(h=>Math.round(h.intr)),backgroundColor:PAT,borderColor:PAL,borderWidth:1}
     ]},
-    options:{...baseOpts({plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtW(c.raw)}元`}}}})}
+    options:{...baseOpts({plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtW(c.raw)}`}}}})}
   });
 
   if(bar3Chart)bar3Chart.destroy();
   bar3Chart=new Chart(document.getElementById('bc3'),{
     type:'bar',
     data:{labels:lbls,datasets:[{label:'还款总额',data:items.map(h=>Math.round(h.tot)),backgroundColor:PAL}]},
-    options:{...baseOpts({plugins:{tooltip:{callbacks:{label:c=>`总额: ${fmtW(c.raw)}元`}}}})}
+    options:{...baseOpts({plugins:{tooltip:{callbacks:{label:c=>`总额: ${fmtW(c.raw)}`}}}})}
   });
 }
 
 function exportCSV(){
   if(!history.length)return;
-  let rows=[['方案','月供(元)','还款总额(元)','利息总额(元)','年限','本金','利率']];
+  let rows=[['方案','月供($)','周供($)','还款总额($)','利息总额($)','年限','本金','利率']];
   history.forEach(h=>{
-    rows.push([h.label,Math.round(h.m),Math.round(h.tot),Math.round(h.intr),h.term+'年',h.p,h.r+'%']);
+    rows.push([h.label,Math.round(h.m),Math.round(monthlyToWeekly(h.m)),Math.round(h.tot),Math.round(h.intr),h.term+'年',h.p,h.r+'%']);
   });
   let csv=rows.map(r=>r.join(',')).join('\n');
   let blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
@@ -535,7 +526,7 @@ function copyShare(){
   let lines=['【房贷计算快照】导出时间：'+new Date().toLocaleString('zh-CN'),''];
   history.forEach((h,i)=>{
     lines.push(`${i+1}. ${h.label}`);
-    lines.push(`   月供：${fmt(h.m)} 元/月  |  利息：${fmtW(h.intr)}  |  总额：${fmtW(h.tot)}`);
+    lines.push(`   月供：$${fmt(h.m)}/月 · 周供：$${fmt(monthlyToWeekly(h.m))}/周  |  利息：${fmtW(h.intr)}  |  总额：${fmtW(h.tot)}`);
   });
   let txt=lines.join('\n');
   navigator.clipboard.writeText(txt).then(()=>{
